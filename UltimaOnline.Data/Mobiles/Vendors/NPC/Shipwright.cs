@@ -1,49 +1,49 @@
-using System; 
-using System.Collections.Generic; 
-using UltimaOnline; 
+using System;
+using System.Collections.Generic;
+using UltimaOnline;
 
-namespace UltimaOnline.Mobiles 
-{ 
-	public class Shipwright : BaseVendor 
-	{ 
-		private List<SBInfo> m_SBInfos = new List<SBInfo>(); 
-		protected override List<SBInfo> SBInfos{ get { return m_SBInfos; } } 
+namespace UltimaOnline.Mobiles
+{
+    public class Shipwright : BaseVendor
+    {
+        private List<SBInfo> m_SBInfos = new List<SBInfo>();
+        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
 
-		[Constructable]
-		public Shipwright() : base( "the shipwright" ) 
-		{ 
-			SetSkill( SkillName.Carpentry, 60.0, 83.0 );
-			SetSkill( SkillName.Macing, 36.0, 68.0 );
-		} 
+        [Constructable]
+        public Shipwright() : base("the shipwright")
+        {
+            SetSkill(SkillName.Carpentry, 60.0, 83.0);
+            SetSkill(SkillName.Macing, 36.0, 68.0);
+        }
 
-		public override void InitSBInfo() 
-		{ 
-			m_SBInfos.Add( new SBShipwright() ); 
-		}
+        public override void InitSBInfo()
+        {
+            m_SBInfos.Add(new SBShipwright());
+        }
 
-		public override void InitOutfit()
-		{
-			base.InitOutfit();
+        public override void InitOutfit()
+        {
+            base.InitOutfit();
 
-			AddItem( new UltimaOnline.Items.SmithHammer() );
-		}
+            AddItem(new UltimaOnline.Items.SmithHammer());
+        }
 
-		public Shipwright( Serial serial ) : base( serial ) 
-		{ 
-		} 
+        public Shipwright(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Serialize( GenericWriter writer ) 
-		{ 
-			base.Serialize( writer ); 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 ); // version 
-		} 
+            writer.Write((int)0); // version 
+        }
 
-		public override void Deserialize( GenericReader reader ) 
-		{ 
-			base.Deserialize( reader ); 
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			int version = reader.ReadInt(); 
-		} 
-	} 
+            int version = reader.ReadInt();
+        }
+    }
 }

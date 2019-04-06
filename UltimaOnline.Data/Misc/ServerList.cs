@@ -8,9 +8,9 @@ using UltimaOnline.Network;
 
 namespace UltimaOnline.Misc
 {
-	public class ServerList
-	{
-		/* 
+    public class ServerList
+    {
+        /* 
 		 * The default setting for Address, a value of 'null', will use your local IP address. If all of your local IP addresses
 		 * are private network addresses and AutoDetect is 'true' then RunUO will attempt to discover your public IP address
 		 * for you automatically.
@@ -38,99 +38,107 @@ namespace UltimaOnline.Misc
 		 * firewalls) or specific IP adddresses you can do so by modifying the file SocketOptions.cs found in this directory.
 		 */
 
-		public static readonly string Address = null;
-		public static readonly string ServerName = "RunUO TC";
+        public static readonly string Address = null;
+        public static readonly string ServerName = "RunUO TC";
 
-		public static readonly bool AutoDetect = true;
+        public static readonly bool AutoDetect = true;
 
-		public static void Initialize()
-		{
-			if ( Address == null ) {
-				if ( AutoDetect )
-					AutoDetection();
-			}
-			else {
-				Resolve( Address, out m_PublicAddress );
-			}
+        public static void Initialize()
+        {
+            if (Address == null)
+            {
+                if (AutoDetect)
+                    AutoDetection();
+            }
+            else
+            {
+                Resolve(Address, out m_PublicAddress);
+            }
 
-			EventSink.ServerList += new ServerListEventHandler( EventSink_ServerList );
-		}
+            EventSink.ServerList += new ServerListEventHandler(EventSink_ServerList);
+        }
 
-		private static IPAddress m_PublicAddress;
+        private static IPAddress m_PublicAddress;
 
-		private static void EventSink_ServerList( ServerListEventArgs e )
-		{
-			try
-			{
-				NetState ns = e.State;
-				Socket s = ns.Socket;
+        private static void EventSink_ServerList(ServerListEventArgs e)
+        {
+            try
+            {
+                NetState ns = e.State;
+                Socket s = ns.Socket;
 
-				IPEndPoint ipep = (IPEndPoint)s.LocalEndPoint;
+                IPEndPoint ipep = (IPEndPoint)s.LocalEndPoint;
 
-				IPAddress localAddress = ipep.Address;
-				int localPort = ipep.Port;
+                IPAddress localAddress = ipep.Address;
+                int localPort = ipep.Port;
 
-				if ( IsPrivateNetwork( localAddress ) ) {
-					ipep = (IPEndPoint)s.RemoteEndPoint;
-					if ( !IsPrivateNetwork( ipep.Address ) && m_PublicAddress != null )
-						localAddress = m_PublicAddress;
-				}
+                if (IsPrivateNetwork(localAddress))
+                {
+                    ipep = (IPEndPoint)s.RemoteEndPoint;
+                    if (!IsPrivateNetwork(ipep.Address) && m_PublicAddress != null)
+                        localAddress = m_PublicAddress;
+                }
 
-				e.AddServer( ServerName, new IPEndPoint( localAddress, localPort ) );
-			}
-			catch
-			{
-				e.Rejected = true;
-			}
-		}
+                e.AddServer(ServerName, new IPEndPoint(localAddress, localPort));
+            }
+            catch
+            {
+                e.Rejected = true;
+            }
+        }
 
-		private static void AutoDetection()
-		{
-			if ( !HasPublicIPAddress() ) {
-				Console.Write( "ServerList: Auto-detecting public IP address..." );
-				m_PublicAddress = FindPublicAddress();
+        private static void AutoDetection()
+        {
+            if (!HasPublicIPAddress())
+            {
+                Console.Write("ServerList: Auto-detecting public IP address...");
+                m_PublicAddress = FindPublicAddress();
 
-				if ( m_PublicAddress != null )
-					Console.WriteLine( "done ({0})", m_PublicAddress.ToString() );
-				else
-					Console.WriteLine( "failed" );
-			}
-		}
+                if (m_PublicAddress != null)
+                    Console.WriteLine("done ({0})", m_PublicAddress.ToString());
+                else
+                    Console.WriteLine("failed");
+            }
+        }
 
-		private static void Resolve( string addr, out IPAddress outValue )
-		{
-			if ( IPAddress.TryParse( addr, out outValue ) )
-				return;
+        private static void Resolve(string addr, out IPAddress outValue)
+        {
+            if (IPAddress.TryParse(addr, out outValue))
+                return;
 
-			try {
-				IPHostEntry iphe = Dns.GetHostEntry( addr );
+            try
+            {
+                IPHostEntry iphe = Dns.GetHostEntry(addr);
 
-				if ( iphe.AddressList.Length > 0 )
-					outValue = iphe.AddressList[iphe.AddressList.Length - 1];
-			}
-			catch {
-			}
-		}
+                if (iphe.AddressList.Length > 0)
+                    outValue = iphe.AddressList[iphe.AddressList.Length - 1];
+            }
+            catch
+            {
+            }
+        }
 
-		private static bool HasPublicIPAddress()
-		{
-			NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
+        private static bool HasPublicIPAddress()
+        {
+            NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
 
-			foreach ( NetworkInterface adapter in adapters ) {
-				IPInterfaceProperties properties = adapter.GetIPProperties();
+            foreach (NetworkInterface adapter in adapters)
+            {
+                IPInterfaceProperties properties = adapter.GetIPProperties();
 
-				foreach ( IPAddressInformation unicast in properties.UnicastAddresses ) {
-					IPAddress ip = unicast.Address;
+                foreach (IPAddressInformation unicast in properties.UnicastAddresses)
+                {
+                    IPAddress ip = unicast.Address;
 
-					if ( !IPAddress.IsLoopback( ip ) && ip.AddressFamily != AddressFamily.InterNetworkV6 && !IsPrivateNetwork( ip ) )
-						return true;
-				}
-			}
+                    if (!IPAddress.IsLoopback(ip) && ip.AddressFamily != AddressFamily.InterNetworkV6 && !IsPrivateNetwork(ip))
+                        return true;
+                }
+            }
 
-			return false;
+            return false;
 
 
-			/*
+            /*
 			IPHostEntry iphe = Dns.GetHostEntry( Dns.GetHostName() );
 
 			IPAddress[] ips = iphe.AddressList;
@@ -143,56 +151,59 @@ namespace UltimaOnline.Misc
 
 			return false;
 			*/
-		}
+        }
 
-		private static bool IsPrivateNetwork( IPAddress ip )
-		{
-			// 10.0.0.0/8
-			// 172.16.0.0/12
-			// 192.168.0.0/16
-			// 169.254.0.0/16
-			// 100.64.0.0/10 RFC 6598
+        private static bool IsPrivateNetwork(IPAddress ip)
+        {
+            // 10.0.0.0/8
+            // 172.16.0.0/12
+            // 192.168.0.0/16
+            // 169.254.0.0/16
+            // 100.64.0.0/10 RFC 6598
 
-			if ( ip.AddressFamily == AddressFamily.InterNetworkV6 )
-				return false;
+            if (ip.AddressFamily == AddressFamily.InterNetworkV6)
+                return false;
 
-			if ( Utility.IPMatch( "192.168.*", ip ) )
-				return true;
-			else if ( Utility.IPMatch( "10.*", ip ) )
-				return true;
-			else if ( Utility.IPMatch( "172.16-31.*", ip ) )
-				return true;
-			else if ( Utility.IPMatch( "169.254.*", ip ) )
-				return true;
-			else if ( Utility.IPMatch( "100.64-127.*", ip ) )
-				return true;
-			else
-				return false;
-		}
+            if (Utility.IPMatch("192.168.*", ip))
+                return true;
+            else if (Utility.IPMatch("10.*", ip))
+                return true;
+            else if (Utility.IPMatch("172.16-31.*", ip))
+                return true;
+            else if (Utility.IPMatch("169.254.*", ip))
+                return true;
+            else if (Utility.IPMatch("100.64-127.*", ip))
+                return true;
+            else
+                return false;
+        }
 
-		private static IPAddress FindPublicAddress()
-		{
-			try {
-				WebRequest req = HttpWebRequest.Create( "https://api.ipify.org" );
+        private static IPAddress FindPublicAddress()
+        {
+            try
+            {
+                WebRequest req = HttpWebRequest.Create("https://api.ipify.org");
 
-				req.Timeout = 15000;
+                req.Timeout = 15000;
 
-				WebResponse res = req.GetResponse();
+                WebResponse res = req.GetResponse();
 
-				Stream s = res.GetResponseStream();
+                Stream s = res.GetResponseStream();
 
-				StreamReader sr = new StreamReader( s );
+                StreamReader sr = new StreamReader(s);
 
-				IPAddress ip = IPAddress.Parse( sr.ReadLine() );
+                IPAddress ip = IPAddress.Parse(sr.ReadLine());
 
-				sr.Close();
-				s.Close();
-				res.Close();
+                sr.Close();
+                s.Close();
+                res.Close();
 
-				return ip;
-			} catch {
-				return null;
-			}
-		}
-	}
+                return ip;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
 }

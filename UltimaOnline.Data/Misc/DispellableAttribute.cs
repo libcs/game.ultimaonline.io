@@ -3,8 +3,8 @@ using UltimaOnline;
 
 namespace UltimaOnline.Misc
 {
-	[AttributeUsage( AttributeTargets.Class )]
-	public class DispellableAttribute : Attribute
-	{
-	}
+    [AttributeUsage(AttributeTargets.Class)]
+    public class DispellableAttribute : Attribute
+    {
+    }
 }

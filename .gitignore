@@ -4,8 +4,9 @@
 # *.csproj
 *.csproj.user
 # *.sln
-packages
+packages/
 packages.config
+netcoreapp2.2/
 
 # Makefiles
 Makefile

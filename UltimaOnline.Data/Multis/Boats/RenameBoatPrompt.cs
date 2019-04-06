@@ -1,0 +1,21 @@
+using System;
+using UltimaOnline;
+using UltimaOnline.Prompts;
+
+namespace UltimaOnline.Multis
+{
+	public class RenameBoatPrompt : Prompt
+	{
+		private BaseBoat m_Boat;
+
+		public RenameBoatPrompt( BaseBoat boat )
+		{
+			m_Boat = boat;
+		}
+
+		public override void OnResponse( Mobile from, string text )
+		{
+			m_Boat.EndRename( from, text );
+		}
+	}
+}

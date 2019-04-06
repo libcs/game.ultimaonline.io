@@ -1,0 +1,16 @@
+using System;
+
+namespace UltimaOnline.Spells
+{
+	public enum SpellCircle
+	{
+		First,
+		Second,
+		Third,
+		Fourth,
+		Fifth,
+		Sixth,
+		Seventh,
+		Eighth
+	}
+}

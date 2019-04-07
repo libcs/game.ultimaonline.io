@@ -1,29 +1,18 @@
-using System;
 using System.Xml;
 
 namespace UltimaOnline.Accounting
 {
     public class AccountTag
     {
-        private string m_Name, m_Value;
-
         /// <summary>
         /// Gets or sets the name of this tag.
         /// </summary>
-        public string Name
-        {
-            get { return m_Name; }
-            set { m_Name = value; }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the value of this tag.
         /// </summary>
-        public string Value
-        {
-            get { return m_Value; }
-            set { m_Value = value; }
-        }
+        public string Value { get; set; }
 
         /// <summary>
         /// Constructs a new AccountTag instance with a specific name and value.
@@ -32,8 +21,8 @@ namespace UltimaOnline.Accounting
         /// <param name="value">Initial value.</param>
         public AccountTag(string name, string value)
         {
-            m_Name = name;
-            m_Value = value;
+            Name = name;
+            Value = value;
         }
 
         /// <summary>
@@ -42,20 +31,20 @@ namespace UltimaOnline.Accounting
         /// <param name="node">The XmlElement instance from which to deserialize.</param>
         public AccountTag(XmlElement node)
         {
-            m_Name = Utility.GetAttribute(node, "name", "empty");
-            m_Value = Utility.GetText(node, "");
+            Name = Utility.GetAttribute(node, "name", "empty");
+            Value = Utility.GetText(node, string.Empty);
         }
 
         /// <summary>
         /// Serializes this AccountTag instance to an XmlTextWriter.
         /// </summary>
-        /// <param name="xml">The XmlTextWriter instance from which to serialize.</param>
-        public void Save(XmlTextWriter xml)
+        /// <param name="w">The XmlTextWriter instance from which to serialize.</param>
+        public void Save(XmlTextWriter w)
         {
-            xml.WriteStartElement("tag");
-            xml.WriteAttributeString("name", m_Name);
-            xml.WriteString(m_Value);
-            xml.WriteEndElement();
+            w.WriteStartElement("tag");
+            w.WriteAttributeString("name", Name);
+            w.WriteString(Value);
+            w.WriteEndElement();
         }
     }
 }

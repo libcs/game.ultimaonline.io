@@ -21,22 +21,18 @@ namespace UltimaOnline.Items
             AddComponent(new AddonComponent(0x1212), 1, 1, 0);
         }
 
-        public AbbatoirAddon(Serial serial) : base(serial)
+        public AbbatoirAddon(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 

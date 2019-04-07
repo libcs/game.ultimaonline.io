@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
-using UltimaOnline;
 using UltimaOnline.Network;
 
 namespace UltimaOnline.Accounting
@@ -17,7 +14,6 @@ namespace UltimaOnline.Accounting
         {
             if (!Enabled)
                 return;
-
             PacketHandlers.RegisterThrottler(0x80, new ThrottlePacketCallback(Throttle_Callback));
             PacketHandlers.RegisterThrottler(0x91, new ThrottlePacketCallback(Throttle_Callback));
             PacketHandlers.RegisterThrottler(0xCF, new ThrottlePacketCallback(Throttle_Callback));
@@ -25,33 +21,25 @@ namespace UltimaOnline.Accounting
 
         public static bool Throttle_Callback(NetState ns)
         {
-            InvalidAccountAccessLog accessLog = FindAccessLog(ns);
-
+            var accessLog = FindAccessLog(ns);
             if (accessLog == null)
                 return true;
-
-            return (DateTime.UtcNow >= (accessLog.LastAccessTime + ComputeThrottle(accessLog.Counts)));
+            return DateTime.UtcNow >= (accessLog.LastAccessTime + ComputeThrottle(accessLog.Counts));
         }
 
-        private static List<InvalidAccountAccessLog> m_List = new List<InvalidAccountAccessLog>();
+        static List<InvalidAccountAccessLog> _List = new List<InvalidAccountAccessLog>();
 
         public static InvalidAccountAccessLog FindAccessLog(NetState ns)
         {
             if (ns == null)
                 return null;
-
-            IPAddress ipAddress = ns.Address;
-
-            for (int i = 0; i < m_List.Count; ++i)
+            var ipAddress = ns.Address;
+            for (var i = 0; i < _List.Count; ++i)
             {
-                InvalidAccountAccessLog accessLog = m_List[i];
-
-                if (accessLog.HasExpired)
-                    m_List.RemoveAt(i--);
-                else if (accessLog.Address.Equals(ipAddress))
-                    return accessLog;
+                var accessLog = _List[i];
+                if (accessLog.HasExpired) _List.RemoveAt(i--);
+                else if (accessLog.Address.Equals(ipAddress)) return accessLog;
             }
-
             return null;
         }
 
@@ -59,93 +47,46 @@ namespace UltimaOnline.Accounting
         {
             if (ns == null || !Enabled)
                 return;
-
-            InvalidAccountAccessLog accessLog = FindAccessLog(ns);
-
+            var accessLog = FindAccessLog(ns);
             if (accessLog == null)
-                m_List.Add(accessLog = new InvalidAccountAccessLog(ns.Address));
-
+                _List.Add(accessLog = new InvalidAccountAccessLog(ns.Address));
             accessLog.Counts += 1;
             accessLog.RefreshAccessTime();
-
             if (accessLog.Counts >= 3)
-            {
                 try
                 {
-                    using (StreamWriter op = new StreamWriter("throttle.log", true))
-                    {
-                        op.WriteLine(
-                            "{0}\t{1}\t{2}",
-                            DateTime.UtcNow,
-                            ns,
-                            accessLog.Counts
-                        );
-                    }
+                    using (var op = new StreamWriter("throttle.log", true))
+                        op.WriteLine($"{DateTime.UtcNow}\t{ns}\t{accessLog.Counts}");
                 }
-                catch
-                {
-                }
-            }
+                catch { }
         }
 
         public static TimeSpan ComputeThrottle(int counts)
         {
-            if (counts >= 15)
-                return TimeSpan.FromMinutes(5.0);
-
-            if (counts >= 10)
-                return TimeSpan.FromMinutes(1.0);
-
-            if (counts >= 5)
-                return TimeSpan.FromSeconds(20.0);
-
-            if (counts >= 3)
-                return TimeSpan.FromSeconds(10.0);
-
-            if (counts >= 1)
-                return TimeSpan.FromSeconds(2.0);
-
+            if (counts >= 15) return TimeSpan.FromMinutes(5.0);
+            if (counts >= 10) return TimeSpan.FromMinutes(1.0);
+            if (counts >= 5) return TimeSpan.FromSeconds(20.0);
+            if (counts >= 3) return TimeSpan.FromSeconds(10.0);
+            if (counts >= 1) return TimeSpan.FromSeconds(2.0);
             return TimeSpan.Zero;
         }
     }
 
     public class InvalidAccountAccessLog
     {
-        private IPAddress m_Address;
-        private DateTime m_LastAccessTime;
-        private int m_Counts;
+        public IPAddress Address { get; set; }
 
-        public IPAddress Address
-        {
-            get { return m_Address; }
-            set { m_Address = value; }
-        }
+        public DateTime LastAccessTime { get; set; }
 
-        public DateTime LastAccessTime
-        {
-            get { return m_LastAccessTime; }
-            set { m_LastAccessTime = value; }
-        }
+        public bool HasExpired => DateTime.UtcNow >= (LastAccessTime + TimeSpan.FromHours(1.0));
 
-        public bool HasExpired
-        {
-            get { return (DateTime.UtcNow >= (m_LastAccessTime + TimeSpan.FromHours(1.0))); }
-        }
+        public int Counts { get; set; }
 
-        public int Counts
-        {
-            get { return m_Counts; }
-            set { m_Counts = value; }
-        }
-
-        public void RefreshAccessTime()
-        {
-            m_LastAccessTime = DateTime.UtcNow;
-        }
+        public void RefreshAccessTime() => LastAccessTime = DateTime.UtcNow;
 
         public InvalidAccountAccessLog(IPAddress address)
         {
-            m_Address = address;
+            Address = address;
             RefreshAccessTime();
         }
     }

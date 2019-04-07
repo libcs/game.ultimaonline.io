@@ -342,7 +342,6 @@ namespace UltimaOnline
         }
 
         public static int GlobalUpdateRange { get; set; } = 18;
-
         public static int GlobalMaxUpdateRange { get; set; } = 24;
 
         static int _ItemCount, _MobileCount;
@@ -367,30 +366,30 @@ namespace UltimaOnline
             var isItem = t.IsSubclassOf(typeof(Item));
             if (!isItem && !t.IsSubclassOf(typeof(Mobile)))
                 return;
-            if (isItem) Interlocked.Increment(ref _ItemCount); //++_ItemCount;
-            else Interlocked.Increment(ref _MobileCount); //++_MobileCount;
-            StringBuilder warningSb = null;
+            if (isItem) Interlocked.Increment(ref _ItemCount);
+            else Interlocked.Increment(ref _MobileCount);
+            StringBuilder b = null;
             try
             {
                 if (t.GetConstructor(_SerialTypeArray) == null)
                 {
-                    warningSb = new StringBuilder();
-                    warningSb.AppendLine("       - No serialization constructor");
+                    b = new StringBuilder();
+                    b.AppendLine("       - No serialization constructor");
                 }
                 if (t.GetMethod("Serialize", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) == null)
                 {
-                    if (warningSb == null)
-                        warningSb = new StringBuilder();
-                    warningSb.AppendLine("       - No Serialize() method");
+                    if (b == null)
+                        b = new StringBuilder();
+                    b.AppendLine("       - No Serialize() method");
                 }
                 if (t.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly) == null)
                 {
-                    if (warningSb == null)
-                        warningSb = new StringBuilder();
-                    warningSb.AppendLine("       - No Deserialize() method");
+                    if (b == null)
+                        b = new StringBuilder();
+                    b.AppendLine("       - No Deserialize() method");
                 }
-                if (warningSb != null && warningSb.Length > 0)
-                    Console.WriteLine("Warning: {0}\n{1}", t, warningSb);
+                if (b != null && b.Length > 0)
+                    Console.WriteLine("Warning: {0}\n{1}", t, b);
             }
             catch { Console.WriteLine("Warning: Exception in serialization verification of type {0}", t); }
         }
@@ -405,9 +404,7 @@ namespace UltimaOnline
     public class FileLogger : TextWriter
     {
         public const string DateFormat = "[MMMM dd hh:mm:ss.f tt]: ";
-
         bool _NewLine;
-
         public string FileName { get; private set; }
 
         public FileLogger(string file, bool append = false)
@@ -433,7 +430,6 @@ namespace UltimaOnline
                 w.Write(ch);
             }
         }
-
         public override void Write(string str)
         {
             using (var w = new StreamWriter(new FileStream(FileName, FileMode.Append, FileAccess.Write, FileShare.Read)))
@@ -473,7 +469,6 @@ namespace UltimaOnline
         }
 
         public void Add(TextWriter tw) => _Streams.Add(tw);
-
         public void Remove(TextWriter tw) => _Streams.Remove(tw);
 
         public override void Write(char ch)
@@ -489,7 +484,6 @@ namespace UltimaOnline
         }
 
         public override void WriteLine(string line, params object[] args) => WriteLine(String.Format(line, args));
-
         public override Encoding Encoding => Encoding.Default;
     }
 }

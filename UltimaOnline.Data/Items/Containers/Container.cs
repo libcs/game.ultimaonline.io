@@ -1,52 +1,20 @@
-using System;
 using System.Collections.Generic;
-using UltimaOnline.Multis;
-using UltimaOnline.Mobiles;
-using UltimaOnline.Network;
 using UltimaOnline.ContextMenus;
+using UltimaOnline.Mobiles;
+using UltimaOnline.Multis;
+using UltimaOnline.Network;
 
 namespace UltimaOnline.Items
 {
     public abstract class BaseContainer : Container
     {
-        public override int DefaultMaxWeight
-        {
-            get
-            {
-                if (IsSecure)
-                    return 0;
-
-                return base.DefaultMaxWeight;
-            }
-        }
-
-        public BaseContainer(int itemID) : base(itemID)
-        {
-        }
-
-        public override bool IsAccessibleTo(Mobile m)
-        {
-            if (!BaseHouse.CheckAccessible(m, this))
-                return false;
-
-            return base.IsAccessibleTo(m);
-        }
-
-        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight)
-        {
-            if (this.IsSecure && !BaseHouse.CheckHold(m, this, item, message, checkItems, plusItems, plusWeight))
-                return false;
-
-            return base.CheckHold(m, item, message, checkItems, plusItems, plusWeight);
-        }
-
-        public override bool CheckItemUse(Mobile from, Item item)
-        {
-            if (IsDecoContainer && item is BaseBook)
-                return true;
-
-            return base.CheckItemUse(from, item);
-        }
+        public override int DefaultMaxWeight => IsSecure ? 0 : base.DefaultMaxWeight;
+        public BaseContainer(int itemID) : base(itemID) { }
+        public override bool IsAccessibleTo(Mobile m) => !BaseHouse.CheckAccessible(m, this) ? false : base.IsAccessibleTo(m);
+        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems = true, int plusItems = 0, int plusWeight = 0) => IsSecure && !BaseHouse.CheckHold(m, this, item, message, checkItems, plusItems, plusWeight)
+                ? false
+                : base.CheckHold(m, item, message, checkItems, plusItems, plusWeight);
+        public override bool CheckItemUse(Mobile from, Item item) => IsDecoContainer && item is BaseBook ? true : base.CheckItemUse(from, item);
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
@@ -58,33 +26,25 @@ namespace UltimaOnline.Items
         {
             if (!CheckHold(from, dropped, sendFullMessage, true))
                 return false;
-
-            BaseHouse house = BaseHouse.FindHouseAt(this);
-
+            var house = BaseHouse.FindHouseAt(this);
             if (house != null && house.IsLockedDown(this))
             {
-                if (dropped is VendorRentalContract || (dropped is Container && ((Container)dropped).FindItemByType(typeof(VendorRentalContract)) != null))
+                if (dropped is VendorRentalContract || (dropped is Container c && c.FindItemByType(typeof(VendorRentalContract)) != null))
                 {
                     from.SendLocalizedMessage(1062492); // You cannot place a rental contract in a locked down container.
                     return false;
                 }
-
                 if (!house.LockDown(from, dropped, false))
                     return false;
             }
-
-            List<Item> list = this.Items;
-
-            for (int i = 0; i < list.Count; ++i)
+            var list = Items;
+            for (var i = 0; i < list.Count; ++i)
             {
-                Item item = list[i];
-
+                var item = list[i];
                 if (!(item is Container) && item.StackWith(from, dropped, false))
                     return true;
             }
-
             DropItem(dropped);
-
             return true;
         }
 
@@ -92,67 +52,46 @@ namespace UltimaOnline.Items
         {
             if (!CheckHold(from, item, true, true))
                 return false;
-
-            BaseHouse house = BaseHouse.FindHouseAt(this);
-
+            var house = BaseHouse.FindHouseAt(this);
             if (house != null && house.IsLockedDown(this))
             {
-                if (item is VendorRentalContract || (item is Container && ((Container)item).FindItemByType(typeof(VendorRentalContract)) != null))
+                if (item is VendorRentalContract || (item is Container c && c.FindItemByType(typeof(VendorRentalContract)) != null))
                 {
                     from.SendLocalizedMessage(1062492); // You cannot place a rental contract in a locked down container.
                     return false;
                 }
-
                 if (!house.LockDown(from, item, false))
                     return false;
             }
-
             item.Location = new Point3D(p.X, p.Y, 0);
             AddItem(item);
-
             from.SendSound(GetDroppedSound(item), GetWorldLocation());
-
             return true;
         }
 
         public override void UpdateTotal(Item sender, TotalType type, int delta)
         {
             base.UpdateTotal(sender, type, delta);
-
-            if (type == TotalType.Weight && RootParent is Mobile)
-                ((Mobile)RootParent).InvalidateProperties();
+            if (type == TotalType.Weight && RootParent is Mobile m)
+                m.InvalidateProperties();
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.AccessLevel > AccessLevel.Player || from.InRange(this.GetWorldLocation(), 2) || this.RootParent is PlayerVendor)
-                Open(from);
-            else
-                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            if (from.AccessLevel > AccessLevel.Player || from.InRange(GetWorldLocation(), 2) || RootParent is PlayerVendor) Open(from);
+            else from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
         }
 
-        public virtual void Open(Mobile from)
-        {
-            DisplayTo(from);
-        }
+        public virtual void Open(Mobile from) => DisplayTo(from);
 
-        public BaseContainer(Serial serial) : base(serial)
-        {
-        }
+        public BaseContainer(Serial serial) : base(serial) { }
 
         /* Note: base class insertion; we cannot serialize anything here */
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-        }
+        public override void Serialize(GenericWriter w) => base.Serialize(w);
+        public override void Deserialize(GenericReader r) => base.Deserialize(r);
     }
 
-    public class CreatureBackpack : Backpack    //Used on BaseCreature
+    public class CreatureBackpack : Backpack // Used on BaseCreature
     {
         [Constructable]
         public CreatureBackpack(string name)
@@ -165,17 +104,14 @@ namespace UltimaOnline.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            if (Name != null)
-                list.Add(1075257, Name); // Contents of ~1_PETNAME~'s pack.
-            else
-                base.AddNameProperty(list);
+            if (Name != null) list.Add(1075257, Name); // Contents of ~1_PETNAME~'s pack.
+            else base.AddNameProperty(list);
         }
 
         public override void OnItemRemoved(Item item)
         {
             if (Items.Count == 0)
-                this.Delete();
-
+                Delete();
             base.OnItemRemoved(item);
         }
 
@@ -183,44 +119,32 @@ namespace UltimaOnline.Items
         {
             if (from.AccessLevel > AccessLevel.Player)
                 return true;
-
             from.SendLocalizedMessage(500169); // You cannot pick that up.
             return false;
         }
 
-        public override bool OnDragDropInto(Mobile from, Item item, Point3D p)
+        public override bool OnDragDropInto(Mobile from, Item item, Point3D p) => false;
+
+        public override bool TryDropItem(Mobile from, Item dropped, bool sendFullMessage) => false;
+
+        public CreatureBackpack(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
-            return false;
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public override bool TryDropItem(Mobile from, Item dropped, bool sendFullMessage)
+        public override void Deserialize(GenericReader r)
         {
-            return false;
-        }
-
-        public CreatureBackpack(Serial serial) : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0)
                 Weight = 13.0;
         }
     }
 
-    public class StrongBackpack : Backpack  //Used on Pack animals
+    public class StrongBackpack : Backpack // Used on Pack animals
     {
         [Constructable]
         public StrongBackpack()
@@ -229,40 +153,28 @@ namespace UltimaOnline.Items
             Weight = 13.0;
         }
 
-        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight)
-        {
-            return base.CheckHold(m, item, false, checkItems, plusItems, plusWeight);
-        }
+        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight) => base.CheckHold(m, item, false, checkItems, plusItems, plusWeight);
 
-        public override int DefaultMaxWeight { get { return 1600; } }
+        public override int DefaultMaxWeight => 1600;
 
         public override bool CheckContentDisplay(Mobile from)
         {
-            object root = this.RootParent;
-
-            if (root is BaseCreature && ((BaseCreature)root).Controlled && ((BaseCreature)root).ControlMaster == from)
-                return true;
-
-            return base.CheckContentDisplay(from);
+            var root = RootParent;
+            return root is BaseCreature bc && bc.Controlled && bc.ControlMaster == from ? true : base.CheckContentDisplay(from);
         }
 
-        public StrongBackpack(Serial serial) : base(serial)
+        public StrongBackpack(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0)
                 Weight = 13.0;
         }
@@ -277,55 +189,27 @@ namespace UltimaOnline.Items
             Weight = 3.0;
         }
 
-        public override int DefaultMaxWeight
-        {
-            get
-            {
-                if (Core.ML)
-                {
-                    Mobile m = Parent as Mobile;
-                    if (m != null && m.Player && m.Backpack == this)
-                    {
-                        return 550;
-                    }
-                    else
-                    {
-                        return base.DefaultMaxWeight;
-                    }
-                }
-                else
-                {
-                    return base.DefaultMaxWeight;
-                }
-            }
-        }
+        public override int DefaultMaxWeight => Core.ML ? Parent is Mobile m && m.Player && m.Backpack == this ? 550 : base.DefaultMaxWeight : base.DefaultMaxWeight;
 
-        public Backpack(Serial serial) : base(serial)
-        {
-        }
+        public Backpack(Serial serial) : base(serial) { }
 
         public bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted) return false;
-
             Hue = sender.DyedHue;
-
             return true;
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Serialize(GenericWriter w)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public override void Deserialize(GenericReader reader)
+        public override void Deserialize(GenericReader r)
         {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && ItemID == 0x9B2)
                 ItemID = 0xE75;
         }
@@ -339,22 +223,18 @@ namespace UltimaOnline.Items
             Weight = 1.0;
         }
 
-        public Pouch(Serial serial) : base(serial)
+        public Pouch(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
@@ -365,84 +245,64 @@ namespace UltimaOnline.Items
             Weight = 1.0;
         }
 
-        public BaseBagBall(Serial serial) : base(serial)
-        {
-        }
+        public BaseBagBall(Serial serial) : base(serial) { }
 
         public bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted)
                 return false;
-
             Hue = sender.DyedHue;
-
             return true;
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Serialize(GenericWriter w)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Deserialize(GenericReader reader)
+        public override void Deserialize(GenericReader r)
         {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
     public class SmallBagBall : BaseBagBall
     {
         [Constructable]
-        public SmallBagBall() : base(0x2256)
+        public SmallBagBall() : base(0x2256) { }
+        public SmallBagBall(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public SmallBagBall(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
     public class LargeBagBall : BaseBagBall
     {
         [Constructable]
-        public LargeBagBall() : base(0x2257)
+        public LargeBagBall() : base(0x2257) { }
+        public LargeBagBall(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public LargeBagBall(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
@@ -453,32 +313,25 @@ namespace UltimaOnline.Items
         {
             Weight = 2.0;
         }
-
-        public Bag(Serial serial) : base(serial)
-        {
-        }
+        public Bag(Serial serial) : base(serial) { }
 
         public bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted) return false;
-
             Hue = sender.DyedHue;
-
             return true;
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Serialize(GenericWriter w)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Deserialize(GenericReader reader)
+        public override void Deserialize(GenericReader r)
         {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
@@ -490,23 +343,18 @@ namespace UltimaOnline.Items
             Weight = 25.0;
         }
 
-        public Barrel(Serial serial) : base(serial)
+        public Barrel(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (Weight == 0.0)
                 Weight = 25.0;
         }
@@ -519,23 +367,18 @@ namespace UltimaOnline.Items
         {
             Weight = 15.0;
         }
+        public Keg(Serial serial) : base(serial) { }
 
-        public Keg(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
@@ -546,23 +389,18 @@ namespace UltimaOnline.Items
         {
             Weight = 2.0; // Stratics doesn't know weight
         }
+        public PicnicBasket(Serial serial) : base(serial) { }
 
-        public PicnicBasket(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
@@ -573,28 +411,22 @@ namespace UltimaOnline.Items
         {
             Weight = 1.0; // Stratics doesn't know weight
         }
+        public Basket(Serial serial) : base(serial) { }
 
-        public Basket(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
-    [Furniture]
-    [Flipable(0x9AA, 0xE7D)]
+    [Furniture, Flipable(0x9AA, 0xE7D)]
     public class WoodenBox : LockableContainer
     {
         [Constructable]
@@ -603,27 +435,22 @@ namespace UltimaOnline.Items
             Weight = 4.0;
         }
 
-        public WoodenBox(Serial serial) : base(serial)
+        public WoodenBox(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
+            base.Deserialize(r);
+            var version = r.ReadInt();
         }
     }
 
-    [Furniture]
-    [Flipable(0x9A9, 0xE7E)]
+    [Furniture, Flipable(0x9A9, 0xE7E)]
     public class SmallCrate : LockableContainer
     {
         [Constructable]
@@ -631,31 +458,24 @@ namespace UltimaOnline.Items
         {
             Weight = 2.0;
         }
+        public SmallCrate(Serial serial) : base(serial) { }
 
-        public SmallCrate(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (Weight == 4.0)
                 Weight = 2.0;
         }
     }
 
-    [Furniture]
-    [Flipable(0xE3F, 0xE3E)]
+    [Furniture, Flipable(0xE3F, 0xE3E)]
     public class MediumCrate : LockableContainer
     {
         [Constructable]
@@ -663,31 +483,24 @@ namespace UltimaOnline.Items
         {
             Weight = 2.0;
         }
+        public MediumCrate(Serial serial) : base(serial) { }
 
-        public MediumCrate(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (Weight == 6.0)
                 Weight = 2.0;
         }
     }
 
-    [Furniture]
-    [Flipable(0xE3D, 0xE3C)]
+    [Furniture, Flipable(0xE3D, 0xE3C)]
     public class LargeCrate : LockableContainer
     {
         [Constructable]
@@ -695,124 +508,90 @@ namespace UltimaOnline.Items
         {
             Weight = 1.0;
         }
+        public LargeCrate(Serial serial) : base(serial) { }
 
-        public LargeCrate(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (Weight == 8.0)
                 Weight = 1.0;
         }
     }
 
-    [DynamicFliping]
-    [Flipable(0x9A8, 0xE80)]
+    [DynamicFliping, Flipable(0x9A8, 0xE80)]
     public class MetalBox : LockableContainer
     {
         [Constructable]
-        public MetalBox() : base(0x9A8)
+        public MetalBox() : base(0x9A8) { }
+        public MetalBox(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public MetalBox(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 3)
                 Weight = -1;
         }
     }
 
-    [DynamicFliping]
-    [Flipable(0x9AB, 0xE7C)]
+    [DynamicFliping, Flipable(0x9AB, 0xE7C)]
     public class MetalChest : LockableContainer
     {
         [Constructable]
-        public MetalChest() : base(0x9AB)
+        public MetalChest() : base(0x9AB) { }
+        public MetalChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public MetalChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 25)
                 Weight = -1;
         }
     }
 
-    [DynamicFliping]
-    [Flipable(0xE41, 0xE40)]
+    [DynamicFliping, Flipable(0xE41, 0xE40)]
     public class MetalGoldenChest : LockableContainer
     {
         [Constructable]
-        public MetalGoldenChest() : base(0xE41)
+        public MetalGoldenChest() : base(0xE41) { }
+        public MetalGoldenChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public MetalGoldenChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 25)
                 Weight = -1;
         }
     }
 
-    [Furniture]
-    [Flipable(0xe43, 0xe42)]
+    [Furniture, Flipable(0xe43, 0xe42)]
     public class WoodenChest : LockableContainer
     {
         [Constructable]
@@ -820,124 +599,90 @@ namespace UltimaOnline.Items
         {
             Weight = 2.0;
         }
+        public WoodenChest(Serial serial) : base(serial) { }
 
-        public WoodenChest(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(0); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (Weight == 15.0)
                 Weight = 2.0;
         }
     }
 
-    [Furniture]
-    [Flipable(0x280B, 0x280C)]
+    [Furniture, Flipable(0x280B, 0x280C)]
     public class PlainWoodenChest : LockableContainer
     {
         [Constructable]
-        public PlainWoodenChest() : base(0x280B)
+        public PlainWoodenChest() : base(0x280B) { }
+        public PlainWoodenChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public PlainWoodenChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 15)
                 Weight = -1;
         }
     }
 
-    [Furniture]
-    [Flipable(0x280D, 0x280E)]
+    [Furniture, Flipable(0x280D, 0x280E)]
     public class OrnateWoodenChest : LockableContainer
     {
         [Constructable]
-        public OrnateWoodenChest() : base(0x280D)
+        public OrnateWoodenChest() : base(0x280D) { }
+        public OrnateWoodenChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public OrnateWoodenChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 15)
                 Weight = -1;
         }
     }
 
-    [Furniture]
-    [Flipable(0x280F, 0x2810)]
+    [Furniture, Flipable(0x280F, 0x2810)]
     public class GildedWoodenChest : LockableContainer
     {
         [Constructable]
-        public GildedWoodenChest() : base(0x280F)
+        public GildedWoodenChest() : base(0x280F) { }
+        public GildedWoodenChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public GildedWoodenChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 15)
                 Weight = -1;
         }
     }
 
-    [Furniture]
-    [Flipable(0x2811, 0x2812)]
+    [Furniture, Flipable(0x2811, 0x2812)]
     public class WoodenFootLocker : LockableContainer
     {
         [Constructable]
@@ -945,58 +690,42 @@ namespace UltimaOnline.Items
         {
             GumpID = 0x10B;
         }
+        public WoodenFootLocker(Serial serial) : base(serial) { }
 
-        public WoodenFootLocker(Serial serial) : base(serial)
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(2); // version
         }
 
-        public override void Serialize(GenericWriter writer)
+        public override void Deserialize(GenericReader r)
         {
-            base.Serialize(writer);
-
-            writer.Write((int)2); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 15)
                 Weight = -1;
-
             if (version < 2)
                 GumpID = 0x10B;
         }
     }
 
-    [Furniture]
-    [Flipable(0x2813, 0x2814)]
+    [Furniture, Flipable(0x2813, 0x2814)]
     public class FinishedWoodenChest : LockableContainer
     {
         [Constructable]
-        public FinishedWoodenChest() : base(0x2813)
+        public FinishedWoodenChest() : base(0x2813) { }
+        public FinishedWoodenChest(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter w)
         {
+            base.Serialize(w);
+            w.Write(1); // version
         }
 
-        public FinishedWoodenChest(Serial serial) : base(serial)
+        public override void Deserialize(GenericReader r)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
+            base.Deserialize(r);
+            var version = r.ReadInt();
             if (version == 0 && Weight == 15)
                 Weight = -1;
         }

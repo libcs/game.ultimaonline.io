@@ -1,8 +1,6 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
-using UltimaOnline;
 using UltimaOnline.Misc;
 
 namespace UltimaOnline
@@ -18,29 +16,23 @@ namespace UltimaOnline
         {
             try
             {
-                IPAddress ip = ((IPEndPoint)e.Socket.RemoteEndPoint).Address;
-
+                var ip = ((IPEndPoint)e.Socket.RemoteEndPoint).Address;
                 if (Firewall.IsBlocked(ip))
                 {
-                    Console.WriteLine("Client: {0}: Firewall blocked connection attempt.", ip);
+                    Console.WriteLine($"Client: {ip}: Firewall blocked connection attempt.");
                     e.AllowConnection = false;
                     return;
                 }
                 else if (IPLimiter.SocketBlock && !IPLimiter.Verify(ip))
                 {
-                    Console.WriteLine("Client: {0}: Past IP limit threshold", ip);
-
-                    using (StreamWriter op = new StreamWriter("ipLimits.log", true))
-                        op.WriteLine("{0}\tPast IP limit threshold\t{1}", ip, DateTime.UtcNow);
-
+                    Console.WriteLine($"Client: {ip}: Past IP limit threshold");
+                    using (var op = new StreamWriter("ipLimits.log", true))
+                        op.WriteLine($"{ip}\tPast IP limit threshold\t{DateTime.UtcNow}");
                     e.AllowConnection = false;
                     return;
                 }
             }
-            catch
-            {
-                e.AllowConnection = false;
-            }
+            catch { e.AllowConnection = false; }
         }
     }
 }

@@ -9395,8 +9395,8 @@ namespace UltimaOnline
             m_CreationTime = DateTime.UtcNow;
         }
 
-        private static Queue<Mobile> m_DeltaQueue = new Queue<Mobile>();
-        private static Queue<Mobile> m_DeltaQueueR = new Queue<Mobile>();
+        private static Queue<Mobile> _DeltaQueue = new Queue<Mobile>();
+        private static Queue<Mobile> _DeltaQueueR = new Queue<Mobile>();
 
         private bool m_InDeltaQueue;
         private MobileDelta m_DeltaFlags;
@@ -9414,9 +9414,9 @@ namespace UltimaOnline
 
                 if (_processing)
                 {
-                    lock (m_DeltaQueueR)
+                    lock (_DeltaQueueR)
                     {
-                        m_DeltaQueueR.Enqueue(this);
+                        _DeltaQueueR.Enqueue(this);
 
                         try
                         {
@@ -9432,7 +9432,7 @@ namespace UltimaOnline
                 }
                 else
                 {
-                    m_DeltaQueue.Enqueue(this);
+                    _DeltaQueue.Enqueue(this);
                 }
             }
 
@@ -9878,73 +9878,54 @@ namespace UltimaOnline
             }
         }
 
-        private static bool _processing = false;
+        static bool _processing = false;
 
         public static void ProcessDeltaQueue()
         {
             _processing = true;
-
-            if (m_DeltaQueue.Count >= 512)
+            if (_DeltaQueue.Count >= 512)
             {
-                Parallel.ForEach(m_DeltaQueue, m => m.ProcessDelta());
-                m_DeltaQueue.Clear();
+                Parallel.ForEach(_DeltaQueue, m => m.ProcessDelta());
+                _DeltaQueue.Clear();
             }
-            else
-            {
-                while (m_DeltaQueue.Count > 0) m_DeltaQueue.Dequeue().ProcessDelta();
-            }
-
+            else while (_DeltaQueue.Count > 0) _DeltaQueue.Dequeue().ProcessDelta();
             _processing = false;
-
-            while (m_DeltaQueueR.Count > 0) m_DeltaQueueR.Dequeue().ProcessDelta();
+            while (_DeltaQueueR.Count > 0) _DeltaQueueR.Dequeue().ProcessDelta();
         }
 
         [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
         public int Kills
         {
-            get
-            {
-                return _Kills;
-            }
+            get => _Kills;
             set
             {
-                int oldValue = _Kills;
-
+                var oldValue = _Kills;
                 if (_Kills != value)
                 {
                     _Kills = value;
-
                     if (_Kills < 0)
                         _Kills = 0;
-
                     if ((oldValue >= 5) != (_Kills >= 5))
                     {
                         Delta(MobileDelta.Noto);
                         InvalidateProperties();
                     }
-
                     OnKillsChange(oldValue);
                 }
             }
         }
 
-        public virtual void OnKillsChange(int oldValue)
-        {
-        }
+        public virtual void OnKillsChange(int oldValue) { }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int ShortTermMurders
         {
-            get
-            {
-                return _ShortTermMurders;
-            }
+            get => _ShortTermMurders;
             set
             {
                 if (_ShortTermMurders != value)
                 {
                     _ShortTermMurders = value;
-
                     if (_ShortTermMurders < 0)
                         _ShortTermMurders = 0;
                 }
@@ -9954,10 +9935,7 @@ namespace UltimaOnline
         [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
         public bool Criminal
         {
-            get
-            {
-                return _Criminal;
-            }
+            get => _Criminal;
             set
             {
                 if (_Criminal != value)
@@ -9966,14 +9944,10 @@ namespace UltimaOnline
                     Delta(MobileDelta.Noto);
                     InvalidateProperties();
                 }
-
                 if (_Criminal)
                 {
-                    if (_ExpireCriminal == null)
-                        _ExpireCriminal = new ExpireCriminalTimer(this);
-                    else
-                        _ExpireCriminal.Stop();
-
+                    if (_ExpireCriminal == null) _ExpireCriminal = new ExpireCriminalTimer(this);
+                    else _ExpireCriminal.Stop();
                     _ExpireCriminal.Start();
                 }
                 else if (_ExpireCriminal != null)
@@ -9984,32 +9958,20 @@ namespace UltimaOnline
             }
         }
 
-        public bool CheckAlive()
-        {
-            return CheckAlive(true);
-        }
-
-        public bool CheckAlive(bool message)
+        public bool CheckAlive(bool message = true)
         {
             if (!Alive)
             {
                 if (message)
-                    this.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019048); // I am dead and cannot do that.
-
+                    LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019048); // I am dead and cannot do that.
                 return false;
             }
-            else
-            {
-                return true;
-            }
+            return true;
         }
 
         #region Overhead messages
 
-        public void PublicOverheadMessage(MessageType type, int hue, bool ascii, string text)
-        {
-            PublicOverheadMessage(type, hue, ascii, text, true);
-        }
+        public void PublicOverheadMessage(MessageType type, int hue, bool ascii, string text) => PublicOverheadMessage(type, hue, ascii, text, true);
 
         public void PublicOverheadMessage(MessageType type, int hue, bool ascii, string text, bool noLineOfSight)
         {

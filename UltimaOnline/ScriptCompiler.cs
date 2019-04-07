@@ -217,7 +217,7 @@ namespace UltimaOnline
             catch { }
         }
 
-        private delegate CompilerResults Compiler(bool debug);
+        delegate CompilerResults Compiler(bool debug);
 
         public static bool Compile(bool debug = false, bool cache = true)
         {

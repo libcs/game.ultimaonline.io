@@ -4,6 +4,7 @@ using System.Collections;
 using System.Data;
 using System.Data.Odbc;
 using System.Data.Common;
+using System.Data.SqlClient;
 
 namespace UltimaOnline.Engines.MyRunUO
 {

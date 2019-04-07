@@ -302,6 +302,9 @@ namespace UltimaOnline.Engines.Reports
         //
         //*********************************************************************
 
+        static Color Lighter(Color source, float perc) => source;//: ControlPaint.Light
+        static Color Darker(Color source, float perc) => source;//: ControlPaint.Dark
+
         public int _interval;
 
         private void DrawBars(Graphics graph)
@@ -360,11 +363,10 @@ namespace UltimaOnline.Engines.Reports
                                     };
 
                                     graph.FillPolygon(barBrush, new PointF[] { pts[2], pts[3], pts[6], pts[5] });
-
-                                    using (SolidBrush ltBrsh = new SolidBrush(System.Windows.Forms.ControlPaint.Light(item.ItemColor, 0.1f)))
+                                    using (SolidBrush ltBrsh = new SolidBrush(Lighter(item.ItemColor, 0.1f)))
                                         graph.FillPolygon(ltBrsh, new PointF[] { pts[0], pts[2], pts[5], pts[4] });
 
-                                    using (SolidBrush drkBrush = new SolidBrush(System.Windows.Forms.ControlPaint.Dark(item.ItemColor, 0.05f)))
+                                    using (SolidBrush drkBrush = new SolidBrush(Darker(item.ItemColor, 0.05f)))
                                         graph.FillPolygon(drkBrush, new PointF[] { pts[0], pts[1], pts[3], pts[2] });
 
                                     graph.DrawLine(pen, pts[0], pts[1]);
